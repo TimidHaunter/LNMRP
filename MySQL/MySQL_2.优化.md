@@ -176,8 +176,158 @@ VALUES
 索引只能加给数字字段吗？非数字字段怎么排序。
 ​
 
-### 应用
+### 分类
+
+- 单值索引：单列，一个表可以有多个单值索引
+- 主键索引：字段值不能重复，该字段值不能是**NULL**
+- 唯一索引：字段值不能重复（age=23，很多人都有23岁），一般为ID
+- 复合索引：多个列构成的索引（相当于书的二级目录，z:zhao）(name:age，找张三，有两个张三，再找23岁的张三；如果只有一个张三，就不用找年龄了)
+### 使用
+添加索引
+> create 索引类型 索引名 on 表名(字段)
+> create index dept_index on tb(dept); // 单值
+> create unique index name_index on tb(name); // 唯一索引
+> create index name_dept_index on tb(name,dept); // 复合索引
+> ​
+
+> alter table tb add index dept_index(dept);
+> alter table tb add unique index name_index(name);
+> alter table tb add index name_dept_index(name,dept);
+
 ​
 
+删除索引
+> drop table tb; // 暴力删除，删除表，对应的索引就没有了
+> ​
+
+> drop index 索引名 on 表名
+> drop index name_index on tb; // 删除索引，不用加索引类型
+
+
+
+查询索引
+> show index from tb;
+
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642770141256-188c8e30-ad12-47a5-8056-dc58f12c620d.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=126&id=uf47f8a8d&margin=%5Bobject%20Object%5D&name=image.png&originHeight=252&originWidth=1536&originalType=binary&ratio=1&rotation=0&showTitle=false&size=132300&status=done&style=none&taskId=ue913fc47-abf8-4d37-9ae6-7fdac7db947&title=&width=768)
+
+
+如果字段是主键，该字段默认为主键索引
+​
+
+# 4.SQL性能问题
+[MySQL8.0优化文档](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)
+## 执行计划
+explain，可以模拟SQL优化器执行SQL语句（手动优化）
+explain SQL语句
+> explain select * from goods;
+
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642772493085-8017476d-4fa9-449e-8468-c66405d779b9.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=53&id=u6a6edad4&margin=%5Bobject%20Object%5D&name=image.png&originHeight=106&originWidth=1868&originalType=binary&ratio=1&rotation=0&showTitle=false&size=53899&status=done&style=none&taskId=uf5c04b31-9ab9-4e23-9e6b-3e90a2aa4fc&title=&width=934)
+> id：查询编号
+> select_type：查询类型
+> table：表名
+> partitions：
+> type：
+> possible_keys：预测用到的索引
+> key：实际用到的索引
+> key_len：实际使用索引长度
+> ref：表之间引用关系
+> rows：通过索引查到的数据量
+> filtered：
+> Extra：额外信息
+
+​
+
+### 测试数据
+user
+
+| id | name |
+| --- | --- |
+
+goods
+
+| id | user_id | category_id | title | desc | is_on | is_recommend |
+| --- | --- | --- | --- | --- | --- | --- |
+
+category
+
+| id | name |
+| --- | --- |
+
+
+
+```sql
+# 添加单值索引
+create index goods_user_id_index on goods(user_id);
+create index goods_category_id_index on goods(category_id);
+create index goods_is_on_index on goods(is_on);
+create index goods_title_index on goods(title);
+create index goods_is_recommend_index on goods(is_recommend);
+
+# 删除索引
+drop index goods_user_id_index on goods;
+drop index goods_category_id_index on goods;
+drop index goods_is_on_index on goods;
+drop index goods_title_index on goods;
+drop index goods_is_recommend_index on goods;
+
+# 查询user_id为3，或者category_id为15的商品信息
+select g.* from goods as g, users as u, categories as c 
+where u.id=g.user_id 
+and c.id=g.category_id 
+and (user_id=3 or category_id=16);
+
+explain
+select g.* from goods as g, users as u, categories as c 
+where u.id=g.user_id 
+and c.id=g.category_id 
+and (user_id=3 or category_id=16);
+```
+### id
+id值相同，顺序从上向下执行，先执行u再c然后g表，u8->c57->g1020
+表的执行顺序，因数量的改变而改变，原因是笛卡尔积
+
+| a | b | c |  | 笛卡尔积 |
+| --- | --- | --- | --- | --- |
+| 3 | 4 | 5 |  | 3*4=12*5=60 |
+| 5 | 4 | 3 |  | 5*4=20*3=60 |
+
+明显第二种方法比较**占**内存，因为计算过程大（20），数据小的表优先查询
+​
+
+id值不同，越大越优先，子查询的时候有优先级
+```sql
+# 查询email='root@163.com'，添加了哪些的字段的商品
+select distinct(c.name) 
+from goods as g, users as u, categories as c
+where u.id=g.user_id 
+and c.id=g.category_id 
+and u.email='root@163.com';
+
+explain
+select distinct(c.name) 
+from goods as g, users as u, categories as c
+where u.id=g.user_id 
+and c.id=g.category_id 
+and u.email='root@163.com';
+
+# 多表查询可以改为子查询
+explain
+select distinct(c.name)
+from categories as c
+where c.id in
+(select g.category_id from goods as g where g.user_id=
+	(select u.id from users as u where u.email='root@163.com')
+);
+```
+
+
+
+
+
+
+
+
+## 查询优化器
+查询优化器会干扰优化（自动优化）
 ​
 
