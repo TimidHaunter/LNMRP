@@ -135,7 +135,7 @@ indexs，帮助MySQL高效获取数据的**数据结构**（B+树），就是**�
 将索引的字段，进行树状化
 ​
 
-为啥要用B+树？
+> 为啥要用B+树？
 ```sql
 INSERT INTO user(name,age) 
 VALUES
@@ -144,9 +144,12 @@ VALUES
 ('zhangshuoshi','29'),
 ('chegong','28');
 ```
-插入数据，给 age 字段加上普通索引
+> 插入数据，给 age 字段加上普通索引
+
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642699630054-915a1fce-b83d-41a2-8b5e-c702e61811b8.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=178&id=u8f687d93&margin=%5Bobject%20Object%5D&name=image.png&originHeight=356&originWidth=346&originalType=binary&ratio=1&rotation=0&showTitle=false&size=54111&status=done&style=none&taskId=ub69a9414-9e59-4486-a6ae-c1498e13742&title=&width=173)
-小的放左，大的放右
+
+> 小的放左，大的放右
+
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642746361265-8ccf04af-fd0f-48be-a4eb-f6a37dba677c.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=376&id=u07f4659b&margin=%5Bobject%20Object%5D&name=image.png&originHeight=1504&originWidth=908&originalType=binary&ratio=1&rotation=0&showTitle=false&size=1965879&status=done&style=none&taskId=u84a9ed6d-7ca9-4a51-bc4c-4e03b1f6779&title=&width=227)
 按照索引字段排好B树，31对应数据硬件地址（16进制）
 > select * from user where age = 30;
