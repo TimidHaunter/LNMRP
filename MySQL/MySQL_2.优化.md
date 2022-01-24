@@ -130,12 +130,14 @@ B+树，在B树上做**改进**
 
 ## 索引
 ### 原理
-优化SQL就是优化索引，索引就是目录
-indexs，帮助MySQL高效获取数据的**数据结构**（B+树），就是**树**
-将索引的字段，进行树状化
+> 优化SQL就是优化索引，索引就是目录
+> indexs，帮助MySQL高效获取数据的**数据结构**（B+树），就是**树**
+> 将索引的字段，进行树状化
+
 ​
 
 > 为啥要用B+树？
+
 ```sql
 INSERT INTO user(name,age) 
 VALUES
@@ -147,7 +149,6 @@ VALUES
 > 插入数据，给 age 字段加上普通索引
 
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642699630054-915a1fce-b83d-41a2-8b5e-c702e61811b8.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=178&id=u8f687d93&margin=%5Bobject%20Object%5D&name=image.png&originHeight=356&originWidth=346&originalType=binary&ratio=1&rotation=0&showTitle=false&size=54111&status=done&style=none&taskId=ub69a9414-9e59-4486-a6ae-c1498e13742&title=&width=173)
-
 > 小的放左，大的放右
 
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642746361265-8ccf04af-fd0f-48be-a4eb-f6a37dba677c.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=376&id=u07f4659b&margin=%5Bobject%20Object%5D&name=image.png&originHeight=1504&originWidth=908&originalType=binary&ratio=1&rotation=0&showTitle=false&size=1965879&status=done&style=none&taskId=u84a9ed6d-7ca9-4a51-bc4c-4e03b1f6779&title=&width=227)
@@ -220,7 +221,8 @@ VALUES
 # 4.SQL性能问题
 [MySQL8.0优化文档](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)
 ## 执行计划
-explain，可以模拟SQL优化器执行SQL语句（手动优化）
+[MySql优化-你的SQL命中索引了吗](https://www.cnblogs.com/stevenchen2016/p/5770214.html)
+explain，可以**模拟**SQL优化器执行SQL语句（手动优化）
 explain SQL语句
 > explain select * from goods;
 
@@ -291,8 +293,8 @@ id值相同，顺序从上向下执行，先执行u再c然后g表，u8->c57->g10
 
 | a | b | c |  | 笛卡尔积 |
 | --- | --- | --- | --- | --- |
-| 3 | 4 | 5 |  | 3*4=12*5=60 |
-| 5 | 4 | 3 |  | 5*4=20*3=60 |
+| 3 | 4 | 5 |  | 3x4=12x5=60 |
+| 5 | 4 | 3 |  | 5x4=20x3=60 |
 
 明显第二种方法比较**占**内存，因为计算过程大（20），数据小的表优先查询
 ​
@@ -324,10 +326,48 @@ where c.id in
 ```
 
 
+```sql
+# 子查询+多表
+explain
+select distinct(c.name)
+from categories as c, goods as g
+where c.id=g.category_id
+and g.user_id=
+(select u.id from users as u where u.email='root@163.com');
+```
 
 
+### select_type
+PRIMARY：主查询，一般包含SQL子查询中的最外层。
+SUBQUERY：子查询，嵌套在内部的查询。
+SIMPLE：简单查询（不包含子查询，不包含union连接查询）
+DERIVED：衍生查询（查询的时候用到了临时表）
+
+- a.在from子查询中只有一张表；
+- b.在from子查询中，如果有t1 union t2，则t1就是DERIVED，t2就是union表
+```sql
+# a.在from子查询中只有一张表，临时表（gr）
+explain
+select gr.title 
+from 
+(select * from goods where user_id in (1,2)) as gr;
+
+# b.在from子查询中，如果有t1 union t2，则t1就是DERIVED
+explain
+select gr.title 
+from 
+(select * from goods where user_id=1 union select * from goods where user_id=2) 
+as gr;
+```
 
 
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642950415245-956a5222-4de3-47b5-87df-2a3ff7f19977.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=289&id=u67b1e8ca&margin=%5Bobject%20Object%5D&name=image.png&originHeight=578&originWidth=2126&originalType=binary&ratio=1&rotation=0&showTitle=false&size=108657&status=done&style=none&taskId=u3a4cd49d-3567-485a-b62c-e4a7ee2c144&title=&width=1063)
+DERIVED：左边goods就是衍生表
+UNION：右边goods就是union表
+UNION RESULT：那些表之间存在union
+​
+
+### type
 
 
 ## 查询优化器
