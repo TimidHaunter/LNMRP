@@ -258,7 +258,6 @@ category
 | id | name |
 | --- | --- |
 
-
 ```sql
 # 添加单值索引
 create index goods_user_id_index on goods(user_id);
