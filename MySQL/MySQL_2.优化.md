@@ -12,6 +12,10 @@ yum
 rpm
 ## 登录
 > mysql -u root -p
+> // 显示所有的数据库
+> show databases;
+> // 选择要使用的库名
+> use <Database>;
 
 报错，没有输入密码
 ERROR 1045 (28000): Access denied for user 'root'@'localhost'
