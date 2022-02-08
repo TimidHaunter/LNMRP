@@ -214,7 +214,7 @@ VALUES
 
 
 查询索引
-> show index from tb;
+> show index from <tb>;
 
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642770141256-188c8e30-ad12-47a5-8056-dc58f12c620d.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=126&id=uf47f8a8d&margin=%5Bobject%20Object%5D&name=image.png&originHeight=252&originWidth=1536&originalType=binary&ratio=1&rotation=0&showTitle=false&size=132300&status=done&style=none&taskId=ue913fc47-abf8-4d37-9ae6-7fdac7db947&title=&width=768)
 
@@ -224,6 +224,9 @@ VALUES
 
 # 4.SQL性能问题
 [MySQL8.0优化文档](https://dev.mysql.com/doc/refman/8.0/en/optimization.html)
+​
+
+有索引再谈SQL优化
 ## 执行计划
 [MySql优化-你的SQL命中索引了吗](https://www.cnblogs.com/stevenchen2016/p/5770214.html)
 explain，可以**模拟**SQL优化器执行SQL语句（手动优化）
@@ -261,6 +264,7 @@ category
 
 | id | name |
 | --- | --- |
+
 
 
 ```sql
@@ -341,10 +345,11 @@ and g.user_id=
 
 
 ### select_type
+查询类型
 PRIMARY：主查询，一般包含SQL子查询中的最外层。
 SUBQUERY：子查询，嵌套在内部的查询。
 SIMPLE：简单查询（不包含子查询，不包含union连接查询）
-DERIVED：衍生查询（查询的时候用到了临时表）
+DERIVED：衍生查询（查询的时候用到了**临时表**）
 
 - a.在from子查询中只有一张表；
 - b.在from子查询中，如果有t1 union t2，则t1就是DERIVED，t2就是union表
@@ -370,9 +375,194 @@ UNION：右边goods就是union表
 UNION RESULT：那些表之间存在union
 ​
 
+### table
+查询的那张表，衍生表，union表，数据表
+​
+
 ### type
+[MySQL explain，type分析链接](https://www.cnblogs.com/myseries/p/11251667.html)
+​
+
+索引类型
+system>const>eq_ref>ref>range>index>ALL。要对type优化，前提是有索引。
+其中system，const只是理想情况，实际能到达ref和range。一般SQL就是ALL。
+​
+
+**system**：只有一条数据的系统表；或者衍生表只有一条数据的主查询。
+衍生表，form (select )，临时生成一张表。
+```sql
+create table test_system
+(
+	tid int(3),
+  tname varchar(20)
+);
+insert into test_system values(1, 'a');
+
+insert into test_system values(2, 'b');
+insert into test_system values(3, 'c');
+
+# 优化的前提是加索引，添加主键索引
+alter table test_system add constraint tid_pk primary key(tid);
+
+# t就是衍生表
+explain select * from (select * from test_system) as t where tid=1;
+
+# 衍生表只有一条数据
+select * from test_system;
+```
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644249352433-cbd871dd-f5e0-47dc-b5a6-0c6ba85eb69a.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=144&id=ub0d9f5d4&margin=%5Bobject%20Object%5D&name=image.png&originHeight=288&originWidth=2028&originalType=binary&ratio=1&rotation=0&showTitle=false&size=53963&status=done&style=none&taskId=u9df6cb4a-8e5f-4556-bdd8-7e3a99f4420&title=&width=1014)
+**const**：仅仅能查到一条数据的SQL，必须用于主键索引或者唯一索引。与索引类型有关。
+```sql
+explain
+select * from test_system where tid=1;
+
+explain
+select * from test_system;
+
+# tid小于2的数据就一条（tid=1）
+# 为什么type是range
+explain
+select * from test_system where tid<2;
+
+# 命中一条数据
+explain
+select * from test_system where tid=2;
+
+# 删除主键
+alter table test_system drop primary key;
+
+# 增加普通索引
+create index test_system_index of test_system(tid);
+```
+​
+
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644249773057-e570463e-5dc9-4466-9e2e-ee48df0436ff.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=305&id=u3f55cac5&margin=%5Bobject%20Object%5D&name=image.png&originHeight=610&originWidth=2040&originalType=binary&ratio=1&rotation=0&showTitle=false&size=105963&status=done&style=none&taskId=ucb222145-f179-4f63-acf3-58c2841b133&title=&width=1020)
+第一条命中了主键索引tid；第二条没有命中索引，type就是默认的ALL。
 
 
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644250594519-5c28e70f-4de8-4940-85a1-f7b3f00f117e.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=322&id=u55928623&margin=%5Bobject%20Object%5D&name=image.png&originHeight=644&originWidth=2094&originalType=binary&ratio=1&rotation=0&showTitle=false&size=92378&status=done&style=none&taskId=u43a956bf-17e5-4f8b-ad5f-97d90960acf&title=&width=1047)
+tid小于2的数据就一条（tid=1），为什么type是range？
+索引失效？
+​
+
+**eq_ref**：唯一性索引，对于每个索引键的查询，返回匹配唯一行数据（**有且只有**一个，不能多，不能为零）
+对于前表的每一行(row)，后表只有一行被扫描。
+> 细化一点
+> 1.join查询或者where两个表
+> 2.命中主键或者非空唯一索引
+> 3.等值连接
+
+​
+
+常见于唯一索引，和主键索引。主键索引和唯一索引就能保证数据唯一。
+```sql
+explain
+select * from order_details 
+join goods on order_details.goods_id=goods.id;
+
+explain
+select * from goods where id=17;
+
+# 给laravel.goods表title字段添加唯一索引
+create unique index title_index on goods(title); 
+alter table goods add unique index title_index(title);
+
+# 删除唯一索引
+drop index title_index on goods;
+
+#---------------------------------------------------------#
+#
+#
+# 测试数据
+create table user (
+    id int primary key,
+    name varchar(20)
+)engine=innodb;
+ 
+insert into user values(1,'shenjian');
+insert into user values(2,'zhangsan');
+insert into user values(3,'lisi');
+
+# user_ex为主键索引
+create table user_ex (
+    id int primary key,
+    age int
+)engine=innodb;
+ 
+insert into user_ex values(1,18);
+insert into user_ex values(2,20);
+insert into user_ex values(3,30);
+insert into user_ex values(4,40);
+insert into user_ex values(5,50);
+
+select * from user;
+select * from user_ex;
+
+# id为主键索引
+# eq_ref
+explain
+select * from user,user_ex where user.id=user_ex.id;
+
+# id为唯一索引
+# 删除主键索引
+alter table user_ex drop primary key;
+
+# 修改user_ex表id字段为唯一索引
+alter table user_ex add unique index uk_index(id);
+
+explain
+select * from user,user_ex where user.id=user_ex.id;
+```
+有主键索引的情况下添加不了唯一索引，可以给主键索引字段加上唯一索引。
+1062 - Duplicate entry 'Voluptatem.' for key 'title_index', Time: 0.042000s
+​
+
+唯一索引字段'title'是不是有重复数据？
+title字段有重复数据无法添加唯一索引。
+​
+
+一个字段有两个索引那个生效？
+给主键增加唯一索引。都生效了。
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644300455446-40caeff2-1eea-49ec-957f-654f80370d6f.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=341&id=u7e195572&margin=%5Bobject%20Object%5D&name=image.png&originHeight=682&originWidth=2942&originalType=binary&ratio=1&rotation=0&showTitle=false&size=150998&status=done&style=none&taskId=ue6bd9e8e-770a-455d-af24-631b65fee7b&title=&width=1471)
+​
+
+ref：非唯一索引
+user_ex索引改为普通索引就行，取消唯一性限制，就会出现多条数据
+由于从eq_ref降为ref，对于前表每一行row，后表可能有多于一行的数据。
+```sql
+# 删除唯一性索引
+drop index uk_index on user_ex;
+
+# 添加普通索引
+alter table user_ex add index k_index(id);
+```
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644300856290-da392bfe-c4e7-433e-bac6-76208500bfed.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=183&id=u189cf02d&margin=%5Bobject%20Object%5D&name=image.png&originHeight=366&originWidth=2150&originalType=binary&ratio=1&rotation=0&showTitle=false&size=69323&status=done&style=none&taskId=u9f8fcdef-a4f0-41ea-a1bb-a3da301eb0a&title=&width=1075)
+**数据没有变化，只是修改了索引，取消了唯一性索引。type就发生了变化。**
+eq_ref和ref需要连表。
+​
+
+**range**：检索指定范围的行，where 范围查询（between，in，>，<，<=，>=）
+确保要查询的字段（where后的字段）有索引
+```sql
+explain
+select * from user_ex where id>2;
+
+explain
+select * from user_ex where id in(1,2);
+
+explain
+select * from user_ex where id between 1 and 2;
+```
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644322831616-97f5f177-c2fa-4740-a868-688598488b7d.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=161&id=u836c0148&margin=%5Bobject%20Object%5D&name=image.png&originHeight=322&originWidth=2218&originalType=binary&ratio=1&rotation=0&showTitle=false&size=58661&status=done&style=none&taskId=u5ef18c34-e423-4d55-9624-f359525a25b&title=&width=1109)
+
+
+特殊：in(只有一个值)，type会变成ref；in失效
+​
+
+**index**：查询全部索引上的数据，id就是索引
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644323688812-60e7d71b-a333-47b0-bb28-167662197520.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=141&id=u81d2dbfb&margin=%5Bobject%20Object%5D&name=image.png&originHeight=282&originWidth=2038&originalType=binary&ratio=1&rotation=0&showTitle=false&size=51536&status=done&style=none&taskId=ua1b93383-ee07-409e-8f79-9450ad7367d&title=&width=1019)
+**ALL**：查询全部表的数据，没有索引，默认不查主键就是ALL
+![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1644323834836-79d9c61d-90ef-44fa-bead-1aad944c0017.png#clientId=u4092d238-7d56-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=145&id=u58dd787f&margin=%5Bobject%20Object%5D&name=image.png&originHeight=290&originWidth=1890&originalType=binary&ratio=1&rotation=0&showTitle=false&size=49154&status=done&style=none&taskId=u6e2aed8a-47ab-4e2e-b464-e8efe98cc2f&title=&width=945)
 ## 查询优化器
 查询优化器会干扰优化（自动优化）
 ​
