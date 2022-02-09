@@ -4,12 +4,15 @@
 - SQL解析过程
 - 索引
 - B树，B+树，数据结构【树】
+
 # 1.MySQL版本
 8.0
 5.x：5.4-5.x（**5.5** 5.7）
+
 ## 安装
 yum
 rpm
+
 ## 登录
 > mysql -u root -p
 > // 显示所有的数据库
@@ -19,6 +22,7 @@ rpm
 
 报错，没有输入密码
 ERROR 1045 (28000): Access denied for user 'root'@'localhost'
+
 ## 开机自启
 > chkconfig mysql on // 打开开机自启
 > chkconfig mysql off // 关闭开机自启
@@ -30,15 +34,19 @@ ERROR 1045 (28000): Access denied for user 'root'@'localhost'
 > --pid-file=/var/lib/mysql/bigdata01.pid // pid文件目录，唯一标示符
 
 # 2.原理
-## MySQL逻辑分层
+## 2.1.MySQL逻辑分层
 [MySQL体系架构简介](https://zhuanlan.zhihu.com/p/43736857)
 
-
 ![image.png](https://cdn.nlark.com/yuque/0/2022/png/1927971/1642572121565-db32d75c-6e4a-4ef1-a5c7-9d97b9f7c474.png#clientId=u53d83fd1-b386-4&crop=0&crop=0&crop=1&crop=1&from=paste&height=308&id=uf02682fb&margin=%5Bobject%20Object%5D&name=image.png&originHeight=616&originWidth=508&originalType=binary&ratio=1&rotation=0&showTitle=false&size=226672&status=done&style=none&taskId=u4c96fd7e-f2b8-4f9d-8572-53322ac0e8f&title=&width=254)
+
 应用层：
+
 服务层：
+
 引擎层：
+
 存储层：
+
 ## 支持那些引擎
 ```shell
 show engines;
