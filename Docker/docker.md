@@ -19,7 +19,7 @@
 
 > Docker的思想来自于集装箱，集装箱解决了什么问题？在一艘大船上，可以把货物规整的摆放起来。并且各种各样的货物被集装箱标准化了，集装箱（镜像）和集装箱之间不会互相影响。那么我就不需要专门运送水果的船和专门运送化学品的船了。只要这些货物在集装箱里封装的好好的，那我就可以用一艘大船把他们都运走。
 
-![docker_logo_image](..\Image\docker_logo.png)
+![docker_logo_image](..\$Image\Docker\docker_logo.png)
 
 蓝色的大海：宿主机
 
@@ -113,7 +113,7 @@ mirantis/mysql                                                                  
 
 也可以去docker hub搜索
 
-![docker_hub_image](..\Image\docker_hub_image.png)
+![docker_hub_image](..\$Image\Docker\docker_hub_image.png)
 
 ### 6.2.查看镜像的Tag
 
@@ -121,17 +121,17 @@ Tag 就是标签，类似版本号，需要去docker hub查看
 
 https://hub.docker.com/_/mysql?tab=tags
 
-![docker_hub_tag](..\Image\docker_hub_tag.png)
+![docker_hub_tag](..\$Image\Docker\docker_hub_tag.png)
 
 ### 6.3.拉取镜像
 
 > docker pull [OPTIONS] NAME[:TAG|@DIGEST]
 
-[OPTIONS]
+- [OPTIONS]
 
-NAME 镜像名称，比如mysql
+- NAME 镜像名称，比如mysql
 
-[:TAG] 默认是 latest，最新的
+- [:TAG] 默认是 latest，最新的
 
 ```shell
 $ docker pull mysql
@@ -258,7 +258,7 @@ $ docker run -p 8088:80 -d --name test_nginx --privileged=true nginx
 - -v /docker/www:/docker/www 将主机中当前目录下的www挂载到容器的www目录
 - --rm 容器退出时，删除容器
 
-![docker_nginx_port](..\Image\docker_nginx_port.png)
+![docker_nginx_port](..\$Image\Docker\docker_nginx_port.png)
 
 ### 7.5.查看正在运行的容器列表
 
@@ -376,7 +376,7 @@ $ docker run -p 8088:80 -d --name test_nginx --privileged=true nginx
 
 ### 7.12.命令
 
-![docker_commands_diagram](../Image/docker_commands_diagram.jpg)
+![docker_commands_diagram](..\$Image\Docker\docker_commands_diagram.jpg)
 
 
 
