@@ -19,7 +19,7 @@ utf8mb4_general_ci
 
 
 
-存储引擎
+## 存储引擎
 
 不同的存储引擎，数据的存储格式不一样。
 
@@ -27,7 +27,7 @@ utf8mb4_general_ci
 
 
 
-页格式
+## 页格式
 
 Q：MySQL默认存储引擎是InnoDB，数据放在磁盘上，但是处理数据在内存。怎么把磁盘数据加载到内存？
 
@@ -35,9 +35,11 @@ A：将数据划分为若干个页，以页作为磁盘和内存之间交互的�
 
 
 
-行格式
+## 行格式
 
 以记录为单位来向表中插入数据的，这些记录在磁盘上的存放方式也被称为`行格式`或者`记录格式`。
+
+四种格式，用来存储记录信息，只是格式不同，用到的时候可以在仔细阅读。
 
 Compact
 
@@ -49,7 +51,7 @@ Compressed
 
 
 
-指定行格式语法
+### 指定行格式语法
 
 ```mysql
 ALTER TABLE `integer` ROW_FORMAT=compact;
@@ -64,11 +66,23 @@ CREATE TABLE `integer` (
 
 
 
-InnoDB数据页
+# InnoDB数据页结构
+
+
+
+## InnoDB数据页
 
 ![show_engines.png](G:\data\LNMRP\$Image\MySQL\innodb_data_page.png)
 
-行记录
+## 行记录
+
+行记录放在数据页中
+
+![show_engines.png](G:\data\LNMRP\$Image\Redis\datas.png)
+
+
+
+具体行记录格式
 
 ![show_engines.png](G:\data\LNMRP\$Image\MySQL\row_data.png)
 
@@ -82,21 +96,25 @@ next_record：从当前记录的真实数据到下一条记录的真实数据的
 
 
 
+最大记录（结束），最小记录（开始）
+
 多条记录通过`next_record`指定顺序，其实就是一个链表（记录在页中按照主键值由小到大顺序串联成一个单链表）
 
 ![show_engines.png](G:\data\LNMRP\$Image\MySQL\many_row_data.png)
 
 
 
-页目录
+# B+树索引
 
-查找，最笨的方法从infimum（最小记录）开始，一直找。遍历查找效率很慢。
+查找，最笨的方法从infimum（最小记录）开始，一直找，页a-记录1开始，页n-记录x结束。遍历查找效率很慢。
 
 二分法找到对应的槽。
 
+![show_engines.png](G:\data\LNMRP\$Image\MySQL\datas2.png)
 
 
 
+![image-20230128151906224](G:\data\LNMRP\$Image\MySQL\page.png)
 
 
 

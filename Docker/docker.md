@@ -289,7 +289,7 @@ test_nginx
 
 容器必须是 Up 状态
 
-> docker exec -it 容器ID bash
+> docker exec -it 【容器ID】 /bin/sh 
 
 ```shell
 # 查看docker的Liunx发行版本
