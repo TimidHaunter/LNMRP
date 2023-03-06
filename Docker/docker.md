@@ -380,6 +380,37 @@ $ docker run -p 8088:80 -d --name test_nginx --privileged=true nginx
 
 
 
+### 7.13.安装
+
+查看docker底层操作系统
+
+```shell
+sh-4.4# cat /etc/issue
+\S
+Kernel \r on an \m
+```
+
+
+
+Kernel安装命令
+
+> apt-get
+
+
+
+将宿主机文件拷贝到docker
+
+```shell
+#获取长ID
+docker inspect -f '{{.ID}}' 77198ae39f65
+
+docker cp G:\360MoveData\Users\1\Desktop\tactics.sql\tactics.sql 77198ae39f65f81e09943fefdd1899ef29f7ad3d954c403a625f0bd1b6b37347:/tmp/tactics.sql
+```
+
+
+
+
+
 ## 8.Dockerfile
 
 自定义镜像
